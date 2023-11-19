@@ -10,11 +10,11 @@ CREATE TABLE item_feature_table
     status STRING COMMENT "是否可推荐",
     publish_time bigint COMMENT "发布时间",
     price bigint COMMENT "原始价格",
-    expose_cnt_1d bigint comment "近一天曝光次数编码",
-    click_cnt_1d bigint COMMENT "近一天点击次数编码",
-    cart_uv_15d bigint COMMENT "近十五天加购人数编码",
-    order_uv_30d bigint COMMENT "近三十天下单人数编码",
-    click_rate_1d bigint COMMENT "近一天点击率编码"
+    item_expose_cnt_1d bigint comment "近一天曝光次数编码",
+    item_click_cnt_1d bigint COMMENT "近一天点击次数编码",
+    item_cart_uv_15d bigint COMMENT "近十五天加购人数编码",
+    item_order_uv_30d bigint COMMENT "近三十天下单人数编码",
+    item_click_rate_1d bigint COMMENT "近一天点击率编码"
 )
 PARTITIONED BY 
 (
@@ -45,11 +45,11 @@ SELECT
         WHEN price <= 100 THEN 2
         ELSE 3
     END AS price,
-    LogBucket(expose_cnt_1d, 1.5, 50, 100) AS expose_cnt_1d,
-    TruncateBucket(click_cnt_1d, 10) AS click_cnt_1d,
-    TruncateBucket(cart_uv_15d, 10) AS cart_uv_15d,
-    TruncateBucket(order_uv_30d, 10) AS order_uv_30d,
-    ConversionRateBucket(click_cnt_1d, expose_cnt_1d, ctr_thresholds) AS click_rate_1d
+    LogBucket(expose_cnt_1d, 1.5, 50, 100) AS item_expose_cnt_1d,
+    TruncateBucket(click_cnt_1d, 10) AS item_click_cnt_1d,
+    TruncateBucket(cart_uv_15d, 10) AS item_cart_uv_15d,
+    TruncateBucket(order_uv_30d, 10) AS item_order_uv_30d,
+    ConversionRateBucket(click_cnt_1d, expose_cnt_1d, ctr_thresholds) AS item_click_rate_1d
 FROM (
     SELECT 
         item_id, 
