@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS `user_feature_table`
     ,os bigint comment "操作系统编码"
     ,media_source bigint COMMENT "用户来源编码"
     ,campaign bigint COMMENT "投放广告活动编码"
-    ,tags STRING COMMENT "用户tags"
+    ,user_tags STRING COMMENT "用户tags"
+    ,user_tags_len bigint comment "用户tags非零元素个数"
     ,user_level bigint COMMENT "用户等级"
     ,active_1d bigint comment "近一天访问天数"
     ,active_30d bigint comment "近三十天访问天数"
@@ -20,6 +21,8 @@ CREATE TABLE IF NOT EXISTS `user_feature_table`
     ,cart_cnt_15d bigint COMMENT "近十五天加购次数编码"
     ,order_cnt_30d bigint COMMENT "近三十天下单次数编码"
     ,click_rate_1d bigint COMMENT "近一天点击率编码"
+    ,click_itemid_30d STRING COMMENT "近30天点击的itemid，id1:timestamp1,id2:timestamp2..."
+    ,cart_itemid_30d STRING COMMENT "近30天加购的itemid，id1:timestamp1,id2:timestamp2..."
 )
 PARTITIONED BY
 (
@@ -51,7 +54,8 @@ SELECT
     NVL(os_encode, '0') as os,
     NVL(media_source_encode, '0') as media_source,
     NVL(campaign_encode, '0') as campaign,
-    tags,
+    CONCAT_WS(',', SLICE(SPLIT(CONCAT_WS(',', NVL(tags, ''), REPEAT('0,', 10)), ','), 1, 10)) AS user_tags,
+    size(SLICE(SPLIT(NVL(tags,''), ','), 1, 10)) as user_tags_len,
     user_level,
     active_1d,
     active_30d,
@@ -59,7 +63,9 @@ SELECT
     TruncateBucket(click_cnt_1d, 10) AS click_cnt_1d,
     TruncateBucket(cart_cnt_15d, 10) AS cart_cnt_15d,
     TruncateBucket(order_cnt_30d, 10) AS order_cnt_30d,
-    ConversionRateBucket(click_cnt_1d, expose_cnt_1d, ctr_thresholds) AS click_rate_1d
+    ConversionRateBucket(click_cnt_1d, expose_cnt_1d, ctr_thresholds) AS click_rate_1d,
+    bhvs.click_itemid_30d,
+    bhvs.cart_itemid_30d
 FROM (
     SELECT 
         user_id, 
@@ -95,4 +101,15 @@ LEFT JOIN (
     SELECT ctr_thresholds
 ) t1
 ON 1 = 1
+LEFT JOIN (
+    SELECT 
+        user_id, 
+        wm_concat(CASE WHEN bhv_type = 'click' THEN CONCAT(item_id, ':', bhv_time) END) as click_itemid_30d,
+        wm_concat(CASE WHEN bhv_type = 'cart' THEN CONCAT(item_id, ':', bhv_time) END) as cart_itemid_30d
+    FROM behavior_table_positive
+    WHERE ds <= ${bdp.system.bizdate}
+    and >= to_char(date_sub(to_date(${bdp.system.bizdate},'yyyymmdd'), 30),'yyyymmdd')
+    GROUP BY user_id
+) bhvs
+ON t.user_id = bhvs.user_id
 ;
