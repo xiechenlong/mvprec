@@ -12,7 +12,7 @@ try:
     from tensorflow.python.ops.init_ops import Zeros
 except ImportError:
     from tensorflow.python.ops.init_ops_v2 import Zeros
-from tensorflow.python.keras.layers import Layer, Activation
+from tensorflow.keras.layers import Layer, Activation
 
 try:
     from tensorflow.python.keras.layers import BatchNormalization

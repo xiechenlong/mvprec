@@ -42,12 +42,14 @@ class SequenceFeature:
     """Represents a sequence feature where each element is a categorical variable.
 
     Args:
+        name (str): The name of the feature.
         sparse_feature_name (str): The name of the corresponding sparse feature.
         length_name (str): The name of the feature that represents the length of the sequence.
         maxlen (int): The maximum length of the sequence.
         group_name (str): The name of the group this feature belongs to. Defaults to "default".
     """
-    def __init__(self, sparse_feature_name, length_name, maxlen, group_name="default"):
+    def __init__(self, name, sparse_feature_name, length_name, maxlen, group_name="default"):
+        self.name = name
         self.sparse_feature_name = sparse_feature_name
         self.length_name = length_name
         self.maxlen = maxlen

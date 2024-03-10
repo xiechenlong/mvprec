@@ -14,7 +14,8 @@ try:
 except ImportError:
     from tensorflow.python.ops.init_ops import Zeros, Ones, glorot_normal_initializer as glorot_normal
 
-from tensorflow.python.keras.layers import Layer, Dropout
+from tensorflow.python.keras.layers import Dropout
+from tensorflow.keras.layers import Layer
 
 try:
     from tensorflow.python.keras.layers import BatchNormalization

@@ -36,14 +36,14 @@ class CTRModel():
             - 'weight_normalization' (bool): Whether to use weight normalization in the attention layers.
             - 'return_score' (bool): Whether to return the attention score.
     """
-    def __init__(self, features, dnn_config, l2_reg_embedding=0, tag_pooling='sum', seq_pooling=None, fm_config=None, din_attention_config=None):
+    def __init__(self, features, dnn_config, l2_reg_embedding=0, tag_pooling='sum', seq_pooling=None, fm_config=None, din_config=None):
         self.features = features
         self.dnn_config = dnn_config
         self.l2_reg_embedding = l2_reg_embedding
         self.tag_pooling = tag_pooling
         self.seq_pooling = seq_pooling
         self.fm_config = fm_config
-        self.din_attention_config = din_attention_config
+        self.din_config = din_config
         
         # Create input layers
         self.inputs = build_inputs(self.features)
@@ -58,30 +58,31 @@ class CTRModel():
         self.build_model()
 
     def combine_features(self):
-        features_dict = {feat.name: [] for feat in self.features}
+        features_dict = {}
         
         # Combine Sparse, Dense, and Pooled features in a single pass
         for feat in self.features:
             if isinstance(feat, (SparseFeature, DenseFeature)):
-                features_dict[feat.name].append(self.embeddings[feat.name])
+                features_dict[feat.name] = self.embeddings[feat.name]
             else:
                 pooling_mode = self.tag_pooling if isinstance(feat, TagFeature) else self.seq_pooling
-                sequence_pooling_layer = SequencePoolingLayer(mode=pooling_mode, supports_masking=feat.length_name is None)
-                if feat.length_name:
-                    pooled_output = sequence_pooling_layer([self.embeddings[feat.name], self.inputs[feat.length_name]])
-                else:
-                    pooled_output = sequence_pooling_layer(self.embeddings[feat.name])
-                features_dict[feat.name].append(pooled_output)
+                if pooling_mode:
+                    sequence_pooling_layer = SequencePoolingLayer(mode=pooling_mode, supports_masking=feat.length_name is None)
+                    if feat.length_name:
+                        pooled_output = sequence_pooling_layer([self.embeddings[feat.name], self.inputs[feat.length_name]])
+                    else:
+                        pooled_output = sequence_pooling_layer(self.embeddings[feat.name])
+                    features_dict[feat.name] = pooled_output
 
         # Apply FM and DIN if configured
         if self.fm_config:
-            features_dict['fm_output'] = self.get_fm_output(features_dict)
+            features_dict['fm_output'] = self.get_fm_output()
 
-        if self.din_attention_config:
+        if self.din_config:
             features_dict['din_output'] = self.get_din_attention_output()
 
         # Flatten the dictionary into a list
-        combined_features = [feature for sublist in features_dict.values() for feature in sublist]
+        combined_features = [feature for feature in features_dict.values()]
 
         return combined_features
 
@@ -94,7 +95,10 @@ class CTRModel():
 
         din_outputs = []
         for group_name, feats in group_features.items():
-            attention_sequence_pooling_layer = AttentionSequencePoolingLayer(**self.din_attention_config)
+            attention_sequence_pooling_layer = AttentionSequencePoolingLayer(att_hidden_units=self.din_config['att_hidden_units'],
+                                                                             att_activation=self.din_config['att_activation'], 
+                                                                             weight_normalization=self.din_config['weight_normalization'],
+                                                                             return_score=self.din_config['return_score'])
             
             keys = concat_func([self.embeddings[feat.sparse_feature_name] for feat in feats])
             query = concat_func([self.embeddings[feat.sparse_feature_name] for feat in feats])
@@ -107,17 +111,17 @@ class CTRModel():
                 din_output = attention_sequence_pooling_layer([query, keys])
             
             din_outputs.append(din_output)
-        return din_outputs
+        return concat_func(din_outputs, axis=-1)
 
     def get_fm_output(self):
         # Adjust the dimension of embeddings for FM module if necessary
         fm_inputs = []
         for feat in self.features:
-            if (self.fm_config.use_sparsefeat and isinstance(feat, SparseFeature)) or (feat.name in self.fm_config.feature_names):
+            if (self.fm_config['use_sparsefeat'] and isinstance(feat, SparseFeature)) or (feat.name in self.fm_config['feature_names']):
                 embedding = self.embeddings[feat.name]
                 # For the FM module, ensure all embeddings have the same dimension
-                if feat.embedding_dim != self.fm_config.embedding_dim:
-                    embedding = Dense(self.fm_config.embedding_dim, use_bias=False)(embedding)
+                if feat.embedding_dim != self.fm_config['embedding_dim']:
+                    embedding = Dense(self.fm_config['embedding_dim'], use_bias=False)(embedding)
                 fm_inputs.append(embedding)
 
         fm_output = FM()(concat_func(fm_inputs, axis=1))
@@ -129,7 +133,13 @@ class CTRModel():
         combined_features = self.combine_features()
         
         # Apply DNN
-        self.dnn_layer = DNN(**self.dnn_config)
+        self.dnn_layer = DNN(hidden_units=self.dnn_config['hidden_units'],
+                              activation=self.dnn_config['activation'],
+                              l2_reg=self.dnn_config['l2_reg'],
+                              dropout_rate=self.dnn_config['dropout_rate'],
+                              use_bn=self.dnn_config['use_bn'],
+                              output_activation=self.dnn_config['output_activation'])
+        
         dnn_out = self.dnn_layer(concat_func(combined_features))
         
         logits = Dense(1, use_bias=False)(dnn_out)

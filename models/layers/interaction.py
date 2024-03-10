@@ -21,8 +21,8 @@ try:
 except ImportError:
     from tensorflow.python.ops.init_ops_v2 import Zeros, Ones, Constant, TruncatedNormal, glorot_normal, glorot_uniform
 
-from tensorflow.python.keras.layers import Layer, MaxPooling2D, Conv2D, Dropout, Lambda, Dense, Flatten
-from tensorflow.python.keras.regularizers import l2
+from tensorflow.keras.layers import Layer, MaxPooling2D, Conv2D, Dropout, Lambda, Dense, Flatten
+from tensorflow.keras.regularizers import l2
 from tensorflow.python.layers import utils
 
 from .activation import activation_layer

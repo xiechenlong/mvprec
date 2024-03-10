@@ -1,16 +1,16 @@
 import tensorflow as tf
 
-from activation import Dice
-from core import DNN, LocalActivationUnit, PredictionLayer, RegulationModule
-from interaction import (CIN, FM, AFMLayer, BiInteractionPooling, CrossNet, CrossNetMix,
+from .activation import Dice
+from .core import DNN, LocalActivationUnit, PredictionLayer, RegulationModule
+from .interaction import (CIN, FM, AFMLayer, BiInteractionPooling, CrossNet, CrossNetMix,
                           InnerProductLayer, InteractingLayer,
                           OutterProductLayer, FGCNNLayer, SENETLayer, BilinearInteraction,
                           FieldWiseBiInteraction, FwFMLayer, FEFMLayer, BridgeModule)
-from normalization import LayerNormalization
-from sequence import (AttentionSequencePoolingLayer, BiasEncoding, BiLSTM,
+from .normalization import LayerNormalization
+from .sequence import (AttentionSequencePoolingLayer, BiasEncoding, BiLSTM,
                        KMaxPooling, SequencePoolingLayer, WeightedSequenceLayer,
                        Transformer, PositionEncoding)
-from utils import NoMask, Hash, Linear, _Add, combined_dnn_input, softmax, reduce_sum, Concat
+from .utils import NoMask, Hash, Linear, _Add, combined_dnn_input, softmax, reduce_sum, Concat
 
 custom_objects = {'tf': tf,
                   'InnerProductLayer': InnerProductLayer,
