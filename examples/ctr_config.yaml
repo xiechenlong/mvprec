@@ -1,0 +1,55 @@
+# ctr_config.yaml
+
+features:
+  - type: SparseFeature
+    name: gender
+    vocabulary_size: 2
+    embedding_dim: 16
+  - type: SparseFeature
+    name: item_id
+    vocabulary_size: 10000
+    embedding_dim: 16
+  - type: SparseFeature
+    name: item_length
+    vocabulary_size: 10
+    embedding_dim: 16
+  - type: SparseFeature
+    name: tag_length
+    vocabulary_size: 5
+    embedding_dim: 16
+  - type: SequenceFeature
+    name: hist_item_id
+    sparse_feature_name: item_id
+    length_name: item_length
+    maxlen: 10
+    group_name: item_sequence
+  - type: TagFeature
+    name: tags
+    vocabulary_size: 100
+    embedding_dim: 16
+    length_name: tag_length
+    maxlen: 5
+
+model:
+  dnn_config:
+    hidden_units: [200, 100]
+    activation: dice
+    l2_reg: 0.001
+    dropout_rate: 0
+    use_bn: False
+    output_activation: null
+
+  din_config:
+    att_hidden_units: [80, 40]
+    att_activation: dice
+    weight_normalization: False
+    return_score: False
+
+  fm_config:
+    use_sparsefeat: True
+    feature_names: []
+    embedding_dim: 16
+  
+  l2_reg_embedding: 0.00001
+  tag_pooling: sum
+  seq_pooling: null
