@@ -53,3 +53,15 @@ model:
   l2_reg_embedding: 0.00001
   tag_pooling: sum
   seq_pooling: null
+
+train:
+  table_name: rank_sample_v1
+  model_name: din_fm_v1
+  current_date: 0
+  num_partitions: 7
+  incremental_training: False
+  label_name: is_click
+  epoch: 1
+  batch_size: 1024
+  learning_rate: 0.001
+  verbose: 1
